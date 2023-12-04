@@ -1,5 +1,6 @@
 package co.pgs.match.api.flatmap;
 
+import co.pgs.match.MatchStreamingJob;
 import co.pgs.match.dto.MatchRequest;
 import co.pgs.match.dto.UserInfo;
 import co.pgs.match.dto.UserInfoEnriched;
@@ -8,13 +9,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.sync.RedisCommands;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
 
 import java.util.List;
-import java.util.Set;
 
+@Slf4j
 public class MatchFunction extends RichFlatMapFunction<UserInfoEnriched, String> {
 
     private transient RedisClient redisClient;
@@ -25,7 +27,8 @@ public class MatchFunction extends RichFlatMapFunction<UserInfoEnriched, String>
     @Override
     public void open(Configuration parameters) throws Exception {
         // Lettuce Redis 연결 설정
-        redisClient = RedisClient.create("redis://localhost:6379");
+//        redisClient = RedisClient.create("redis://localhost:6379");
+        redisClient = RedisClient.create("redis://"+ MatchStreamingJob.HOST_NAME +":6379");
         connection = redisClient.connect();
         syncCommands = connection.sync();
         objectMapper = new ObjectMapper();
@@ -47,6 +50,7 @@ public class MatchFunction extends RichFlatMapFunction<UserInfoEnriched, String>
             if(waitingUser.getMatchRequest().getUserId() == value.getMatchRequest().getUserId()) continue;
 
             if (isMatch(currentRequest, currentUserInfo, waitingUser.getMatchRequest(), waitingUser.getUserInfo())) {
+                log.info("Matched : {} ,  {} , requester : {} , waiting : {}", currentRequest.getUserId(), waitingUser.getMatchRequest().getUserId(), value, waitingUser);
                 out.collect("Matched: " + currentRequest.getUserId() + " and " + waitingUser.getMatchRequest().getUserId());
                 removeFromWaitingSet(userId);
                 removeFromUserInfoMap(userId);
@@ -58,6 +62,8 @@ public class MatchFunction extends RichFlatMapFunction<UserInfoEnriched, String>
         }
 
         if (!matched) {
+            log.info("Not Matched : {} ,  requester : {} go to waiting queue", currentRequest.getUserId(), value);
+
             addToWaitingSetAndUserInfoMap(String.valueOf(currentRequest.getUserId()), value);
         }
     }

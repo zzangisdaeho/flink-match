@@ -1,8 +1,10 @@
 package co.pgs.match.api.map;
 
+import co.pgs.match.MatchStreamingJob;
 import co.pgs.match.dto.MatchRequest;
 import co.pgs.match.dto.UserInfo;
 import co.pgs.match.dto.UserInfoEnriched;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
@@ -15,9 +17,10 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+@Slf4j
 public class UserInfoEnricher extends RichMapFunction<MatchRequest, UserInfoEnriched> {
 
-    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/matching";
+    private static final String JDBC_URL = "jdbc:mysql://"+ MatchStreamingJob.HOST_NAME +":3306/matching";
     private static final String USER = "root";
     private static final String PASSWORD = "1234";
 
