@@ -16,8 +16,8 @@ import java.util.Properties;
 
 public class MatchStreamingJob {
 
-//    public static final String HOST_NAME = "localhost";
-    public static final String HOST_NAME = "host.docker.internal";
+    public static final String HOST_NAME = "localhost";
+//    public static final String HOST_NAME = "host.docker.internal";
 
     public static void main(String[] args) throws Exception {
         // Flink 실행 환경 설정
@@ -25,7 +25,7 @@ public class MatchStreamingJob {
 
         // Kafka 소스 설정
         Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "broker1:29092");
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "match-group");
 
         FlinkKafkaConsumer<MatchRequest> kafkaSource = new FlinkKafkaConsumer<>(
@@ -42,7 +42,7 @@ public class MatchStreamingJob {
                 .map(new UserInfoEnricher())
                 .flatMap(new MatchFunction())
                 .addSink(new FlinkKafkaProducer<>(
-                        "broker1:29092",
+                        "localhost:9092",
                         "match-results",
                         new SimpleStringSchema()
                 ));
